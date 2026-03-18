@@ -1,0 +1,2082 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MuniCare — Municipal Complaint Management System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet">
+
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<!-- Leaflet Control Geocoder -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+<script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+
+<style>
+/* ============================================================
+   RESET & ROOT
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; font-size: 14px; }
+
+:root {
+  --bg:      #0c0c0d;
+  --bg2:     #141415;
+  --bg3:     #1c1c1e;
+  --bg4:     #242426;
+  --border:  rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.13);
+  --border3: rgba(255,255,255,0.2);
+  --text:    #f2efe9;
+  --text2:   #9b9790;
+  --text3:   #5a5956;
+  --orange:  #e8593c;
+  --orange2: #f07a5e;
+  --os:      rgba(232,89,60,0.12);
+  --os2:     rgba(232,89,60,0.22);
+  --blue:    #3a8de0;
+  --bs:      rgba(58,141,224,0.12);
+  --green:   #1da876;
+  --gs:      rgba(29,168,118,0.12);
+  --amber:   #f0a030;
+  --ams:     rgba(240,160,48,0.12);
+  --red:     #e04848;
+  --rs:      rgba(224,72,72,0.12);
+  --purple:  #8278e0;
+  --ps:      rgba(130,120,224,0.12);
+  --teal:    #18b0a8;
+  --ts:      rgba(24,176,168,0.12);
+  --r:       10px;
+  --rl:      16px;
+  --rxl:     22px;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  line-height: 1.6;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+a { text-decoration: none; color: inherit; cursor: pointer; }
+button { font-family: 'DM Sans', sans-serif; cursor: pointer; }
+
+/* ============================================================
+   SCROLLBAR
+   ============================================================ */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--bg2); }
+::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 2px; }
+
+/* ============================================================
+   PAGE SYSTEM
+   ============================================================ */
+.page { display: none; animation: fadeUp 0.22s ease; }
+.page.active { display: block; }
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ============================================================
+   NAVBAR
+   ============================================================ */
+.navbar {
+  position: sticky; top: 0; z-index: 200;
+  height: 52px;
+  background: rgba(12,12,13,0.88);
+  backdrop-filter: blur(16px);
+  border-bottom: 0.5px solid var(--border);
+  display: flex; align-items: center;
+}
+.nav-inner {
+  width: 100%; max-width: 1300px;
+  margin: 0 auto; padding: 0 24px;
+  display: flex; align-items: center; gap: 0;
+}
+.nav-logo {
+  display: flex; align-items: center; gap: 9px;
+  margin-right: 28px; cursor: pointer;
+}
+.nav-logo-icon {
+  width: 30px; height: 30px; border-radius: 8px;
+  background: var(--orange);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Syne', sans-serif; font-weight: 800; font-size: 15px; color: #fff;
+}
+.nav-logo-name { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px; color: var(--text); line-height: 1; }
+.nav-logo-sub  { font-size: 10px; color: var(--text3); margin-top: 1px; }
+.nav-links { display: flex; gap: 2px; flex: 1; }
+.nav-link {
+  padding: 5px 11px; border-radius: 8px;
+  font-size: 12.5px; font-weight: 500; color: var(--text2);
+  cursor: pointer; transition: all 0.14s; border: none; background: none;
+}
+.nav-link:hover  { background: var(--bg3); color: var(--text); }
+.nav-link.active { background: var(--bg3); color: var(--text); }
+.nav-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.nav-badge {
+  padding: 3px 10px; border-radius: 20px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.05em;
+  background: var(--os); color: var(--orange);
+}
+.nav-avatar {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: var(--bg4); border: 0.5px solid var(--border2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 600; color: var(--text2);
+}
+
+/* ============================================================
+   SHARED LAYOUT
+   ============================================================ */
+.container  { max-width: 1300px; margin: 0 auto; padding: 24px; }
+.container-sm { max-width: 860px; margin: 0 auto; padding: 24px; }
+
+.page-hdr {
+  background: var(--bg2);
+  border-bottom: 0.5px solid var(--border);
+  padding: 26px 0;
+}
+.page-hdr-inner {
+  max-width: 1300px; margin: 0 auto; padding: 0 24px;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+}
+.page-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 22px; font-weight: 800; color: var(--text); line-height: 1;
+  margin-bottom: 4px;
+}
+.page-sub { font-size: 12px; color: var(--text2); }
+
+/* ============================================================
+   CARDS
+   ============================================================ */
+.card {
+  background: var(--bg2);
+  border: 0.5px solid var(--border);
+  border-radius: var(--rl);
+  padding: 20px 22px;
+  transition: border-color 0.15s;
+}
+.card:hover { border-color: var(--border2); }
+.card-hd {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 16px;
+}
+.card-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 14px; font-weight: 700; color: var(--text);
+}
+.card-ft { margin-top: 14px; padding-top: 14px; border-top: 0.5px solid var(--border); }
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+.btn {
+  padding: 8px 16px; border-radius: var(--r);
+  font-size: 12.5px; font-weight: 500;
+  border: 0.5px solid var(--border2);
+  background: var(--bg3); color: var(--text2);
+  transition: all 0.14s; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 5px;
+}
+.btn:hover  { background: var(--bg4); color: var(--text); }
+.btn:active { transform: scale(0.98); }
+.btn-orange { background: var(--orange); border-color: var(--orange); color: #fff; }
+.btn-orange:hover { opacity: 0.88; background: var(--orange); color: #fff; }
+.btn-green  { background: var(--green);  border-color: var(--green);  color: #fff; }
+.btn-green:hover  { opacity: 0.88; background: var(--green);  color: #fff; }
+.btn-purple { background: var(--purple); border-color: var(--purple); color: #fff; }
+.btn-purple:hover { opacity: 0.88; background: var(--purple); color: #fff; }
+.btn-ghost  { background: transparent;  border-color: var(--border2); color: var(--text2); }
+.btn-ghost:hover  { background: var(--bg3); color: var(--text); }
+.btn-sm { padding: 5px 11px; font-size: 11.5px; }
+.btn-lg { padding: 10px 22px; font-size: 13.5px; }
+
+/* ============================================================
+   BADGES / CHIPS / PILLS
+   ============================================================ */
+.badge {
+  display: inline-block;
+  padding: 2px 8px; border-radius: 20px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.04em;
+}
+.b-orange { background: var(--os); color: var(--orange); }
+.b-blue   { background: var(--bs); color: var(--blue);   }
+.b-green  { background: var(--gs); color: var(--green);  }
+.b-amber  { background: var(--ams); color: var(--amber); }
+.b-red    { background: var(--rs); color: var(--red);    }
+.b-purple { background: var(--ps); color: var(--purple); }
+.b-teal   { background: var(--ts); color: var(--teal);   }
+.b-gray   { background: rgba(255,255,255,0.06); color: var(--text2); }
+
+.chip-road   { background: var(--os);  color: var(--orange); }
+.chip-water  { background: var(--bs);  color: var(--blue);   }
+.chip-garb   { background: var(--ams); color: var(--amber);  }
+.chip-drain  { background: var(--ps);  color: var(--purple); }
+.chip-elec   { background: var(--gs);  color: var(--green);  }
+.chip-other  { background: rgba(255,255,255,0.05); color: var(--text2); }
+
+.prio-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 5px; }
+.pd-high { background: var(--red);   }
+.pd-med  { background: var(--amber); }
+.pd-low  { background: var(--green); }
+.pd-crit { background: var(--red); box-shadow: 0 0 4px var(--red); }
+
+.sp-pending  { background: var(--ams); color: var(--amber);  }
+.sp-progress { background: var(--bs);  color: var(--blue);   }
+.sp-resolved { background: var(--gs);  color: var(--green);  }
+.sp-critical { background: var(--rs);  color: var(--red);    }
+
+.live-dot {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 10px; font-weight: 700; color: var(--green);
+}
+.live-dot span {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--green); animation: livepulse 2s infinite;
+}
+@keyframes livepulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+/* ============================================================
+   TABLE
+   ============================================================ */
+.tbl-wrap { overflow-x: auto; }
+.ctbl { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.ctbl thead tr { border-bottom: 0.5px solid var(--border); }
+.ctbl th {
+  text-align: left; padding: 0 10px 10px;
+  font-size: 10px; font-weight: 700;
+  color: var(--text3); letter-spacing: 0.07em; text-transform: uppercase;
+}
+.ctbl td {
+  padding: 10px 10px; border-bottom: 0.5px solid var(--border); vertical-align: middle;
+}
+.ctbl tbody tr { cursor: pointer; transition: background 0.1s; }
+.ctbl tbody tr:hover td { background: var(--bg3); }
+.ctbl tbody tr:last-child td { border-bottom: none; }
+.td-mono { font-family: 'Courier New', monospace; font-size: 11px; color: var(--text3); }
+.td-issue { font-weight: 500; color: var(--text); max-width: 200px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.td-muted { font-size: 11.5px; color: var(--text3); }
+
+/* ============================================================
+   FORM ELEMENTS
+   ============================================================ */
+.flabel {
+  display: block; font-size: 11.5px; font-weight: 600;
+  color: var(--text2); margin-bottom: 5px; letter-spacing: 0.02em;
+}
+.flabel .req { color: var(--red); margin-left: 2px; }
+.finput, .fselect, .ftextarea {
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: var(--r);
+  border: 0.5px solid var(--border2);
+  background: var(--bg3);
+  color: var(--text);
+  font-size: 13px; font-family: 'DM Sans', sans-serif;
+  outline: none; transition: border-color 0.15s, box-shadow 0.15s;
+  -webkit-appearance: none; appearance: none;
+}
+.finput:focus, .fselect:focus, .ftextarea:focus {
+  border-color: var(--orange);
+  box-shadow: 0 0 0 2px rgba(232,89,60,0.18);
+}
+.finput::placeholder, .ftextarea::placeholder { color: var(--text3); }
+.ftextarea { resize: vertical; min-height: 96px; line-height: 1.6; }
+.fselect {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235a5956' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 10px center;
+  padding-right: 28px; cursor: pointer;
+}
+.fselect option { background: var(--bg3); }
+.fgrid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.fgrid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+.ffield { margin-bottom: 14px; }
+
+/* ============================================================
+   SECTION LABEL
+   ============================================================ */
+.sec-label {
+  display: flex; align-items: center; gap: 8px;
+  font-family: 'Syne', sans-serif; font-size: 13.5px; font-weight: 700;
+  color: var(--text); margin-bottom: 14px;
+}
+.sec-num {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--ps); color: var(--purple);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700;
+}
+
+/* ============================================================
+   STEPPER
+   ============================================================ */
+.stepper { display: flex; align-items: center; margin-bottom: 26px; }
+.step-w  { display: flex; align-items: center; gap: 7px; }
+.step-c  {
+  width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; transition: all 0.2s;
+}
+.sc-idle   { background: var(--bg3); color: var(--text3); border: 0.5px solid var(--border2); }
+.sc-active { background: var(--purple); color: #fff; }
+.sc-done   { background: var(--green);  color: #fff; }
+.step-lbl  { font-size: 12px; font-weight: 500; }
+.sl-idle   { color: var(--text3); }
+.sl-active { color: var(--purple); }
+.sl-done   { color: var(--green); }
+.step-line { flex: 1; height: 1px; background: var(--border); margin: 0 8px; transition: background 0.3s; }
+.step-line.done { background: var(--green); }
+
+/* ============================================================
+   AI ZONE
+   ============================================================ */
+.ai-zone {
+  background: #0e0c1a;
+  border: 0.5px solid rgba(130,120,224,0.28);
+  border-radius: var(--rl); padding: 16px; margin-bottom: 14px;
+}
+.ai-zone-hd { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.ai-icon {
+  width: 30px; height: 30px; border-radius: 8px;
+  background: var(--purple);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; color: #fff;
+}
+.ai-name { font-size: 12.5px; font-weight: 600; color: #c4bdf0; }
+.ai-sub  { font-size: 10px; color: #7a72d0; margin-top: 1px; }
+.ai-idle { font-size: 12px; color: #8278c8; line-height: 1.6; }
+.ai-load { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #8278c8; }
+.ai-dot  { width: 5px; height: 5px; border-radius: 50%; background: var(--purple);
+  animation: aidb 0.8s ease-in-out infinite both; }
+.ai-dot:nth-child(2) { animation-delay: 0.14s; }
+.ai-dot:nth-child(3) { animation-delay: 0.28s; }
+@keyframes aidb { 0%,80%,100%{opacity:.2;transform:scale(.7)} 40%{opacity:1;transform:scale(1)} }
+.ai-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.ai-chip  { padding: 3px 9px; border-radius: 20px; font-size: 10.5px; font-weight: 700; }
+.ac-cat   { background: var(--bs);  color: var(--blue);   }
+.ac-high  { background: var(--rs);  color: var(--red);    }
+.ac-med   { background: var(--ams); color: var(--amber);  }
+.ac-low   { background: var(--gs);  color: var(--green);  }
+.ac-dept  { background: var(--ts);  color: var(--teal);   }
+.ac-dup   { background: var(--ams); color: var(--amber);  }
+.ac-sla   { background: var(--ps);  color: var(--purple); }
+.ai-summary-box {
+  background: var(--bg3); border: 0.5px solid rgba(130,120,224,0.18);
+  border-radius: var(--r); padding: 10px 12px;
+  font-size: 12px; color: var(--text2); line-height: 1.7;
+}
+
+/* ============================================================
+   PHOTO ZONE
+   ============================================================ */
+.photo-zone {
+  border: 1.5px dashed var(--border2); border-radius: var(--r);
+  padding: 20px; text-align: center; cursor: pointer; transition: all 0.15s;
+}
+.photo-zone:hover { border-color: var(--orange); background: var(--os); }
+.photo-zone-icon { font-size: 20px; color: var(--text3); }
+.photo-zone-txt  { font-size: 11.5px; color: var(--text3); margin-top: 5px; }
+.photo-thumbs    { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.thumb {
+  width: 60px; height: 60px; border-radius: 8px;
+  background: var(--bg3); border: 0.5px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; color: var(--text3); position: relative; cursor: pointer;
+  text-align: center; padding: 4px;
+}
+.thumb-del {
+  position: absolute; top: -4px; right: -4px;
+  width: 14px; height: 14px; border-radius: 50%;
+  background: var(--red); color: #fff;
+  font-size: 9px; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; z-index: 2;
+}
+
+/* ============================================================
+   MAP BOX
+   ============================================================ */
+.map-box {
+  height: 200px; background: var(--bg3); border-radius: var(--r);
+  border: 0.5px solid var(--border); margin-top: 10px;
+  position: relative; overflow: hidden; cursor: crosshair;
+}
+.map-caption {
+  position: absolute; bottom: 7px; right: 10px;
+  font-size: 9.5px; color: var(--text3); z-index: 1000; background: rgba(0,0,0,0.4); padding: 2px 5px; border-radius: 4px;
+}
+.gps-ok {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 10.5px; color: var(--green); margin-top: 8px;
+}
+.gps-ok::before {
+  content: ''; width: 6px; height: 6px;
+  border-radius: 50%; background: var(--green); flex-shrink: 0;
+}
+
+/* ============================================================
+   TIMELINE
+   ============================================================ */
+.timeline { display: flex; flex-direction: column; }
+.tl-item  {
+  display: flex; gap: 12px; padding: 9px 0;
+  border-bottom: 0.5px solid var(--border);
+}
+.tl-item:last-child { border-bottom: none; }
+.tl-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+.tl-title { font-size: 12.5px; font-weight: 500; color: var(--text); }
+.tl-meta  { font-size: 10.5px; color: var(--text3); margin-top: 1px; }
+.tl-orange .tl-dot { background: var(--orange); }
+.tl-blue   .tl-dot { background: var(--blue); }
+.tl-green  .tl-dot { background: var(--green); }
+.tl-red    .tl-dot { background: var(--red); }
+.tl-gray   .tl-dot { background: var(--text3); }
+.tl-purple .tl-dot { background: var(--purple); }
+
+/* ============================================================
+   STATUS TIMELINE (Track page)
+   ============================================================ */
+.stl { display: flex; flex-direction: column; gap: 0; }
+.stl-step {
+  display: flex; gap: 14px; padding-bottom: 20px; position: relative;
+}
+.stl-step::after {
+  content: ''; position: absolute; left: 11px; top: 24px; bottom: 0;
+  width: 1px; background: var(--border);
+}
+.stl-step:last-child::after { display: none; }
+.stl-dot {
+  width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; z-index: 1;
+}
+.stl-done   .stl-dot { background: var(--green);  color: #fff; }
+.stl-active .stl-dot { background: var(--orange); color: #fff; }
+.stl-pend   .stl-dot { background: var(--bg3); color: var(--text3); border: 0.5px solid var(--border2); }
+.stl-title { font-size: 13px; font-weight: 500; color: var(--text); }
+.stl-sub   { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+/* ============================================================
+   WARD HEATMAP
+   ============================================================ */
+.ward-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.ward-cell {
+  border-radius: var(--r); padding: 10px 12px; text-align: center;
+  cursor: pointer; transition: transform 0.15s, opacity 0.15s;
+}
+.ward-cell:hover { transform: scale(1.04); }
+.wc-h { background: rgba(224,72,72,0.16); border: 0.5px solid rgba(224,72,72,0.28); }
+.wc-m { background: rgba(240,160,48,0.13); border: 0.5px solid rgba(240,160,48,0.28); }
+.wc-l { background: rgba(58,141,224,0.10); border: 0.5px solid rgba(58,141,224,0.22); }
+.wc-s { background: rgba(29,168,118,0.10); border: 0.5px solid rgba(29,168,118,0.22); }
+.wn { font-size: 9.5px; font-weight: 700; color: var(--text2); }
+.wc { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; color: var(--text); line-height: 1.1; }
+.wa { font-size: 9px; color: var(--text3); margin-top: 1px; }
+.ward-legend { display: flex; gap: 10px; margin-top: 10px; }
+.wleg { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px; }
+
+/* ============================================================
+   CATEGORY BARS
+   ============================================================ */
+.cat-bars { display: flex; flex-direction: column; gap: 9px; }
+.cb-row   { display: flex; align-items: center; gap: 10px; }
+.cb-lbl   { font-size: 11px; color: var(--text2); min-width: 90px; }
+.cb-track { flex: 1; height: 5px; background: var(--bg4); border-radius: 3px; overflow: hidden; }
+.cb-fill  { height: 100%; border-radius: 3px; transition: width 0.7s ease; }
+.cf-o { background: var(--orange); }
+.cf-a { background: var(--amber); }
+.cf-b { background: var(--blue); }
+.cf-p { background: var(--purple); }
+.cf-g { background: var(--green); }
+.cf-x { background: var(--text3); }
+.cb-cnt { font-size: 11px; font-weight: 600; color: var(--text); min-width: 28px; text-align: right; }
+
+/* ============================================================
+   HERO (Dashboard)
+   ============================================================ */
+.hero {
+  background: linear-gradient(175deg, #160e09 0%, var(--bg) 60%);
+  border-bottom: 0.5px solid var(--border);
+  padding: 36px 0 28px;
+}
+.hero-inner {
+  max-width: 1300px; margin: 0 auto; padding: 0 24px;
+  display: flex; align-items: center; gap: 44px;
+}
+.hero-left { flex: 1; }
+.hero-tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 11px; border-radius: 20px;
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em;
+  background: var(--gs); color: var(--green);
+  margin-bottom: 14px;
+}
+.hero-tag::before {
+  content: ''; width: 5px; height: 5px; border-radius: 50%;
+  background: var(--green); animation: livepulse 2s infinite;
+}
+.hero-h1 {
+  font-family: 'Syne', sans-serif;
+  font-size: 30px; font-weight: 800; line-height: 1.12;
+  color: var(--text); margin-bottom: 10px;
+}
+.hero-p { font-size: 13px; color: var(--text2); max-width: 400px; margin-bottom: 22px; line-height: 1.7; }
+.hero-cta { display: flex; gap: 10px; }
+.hero-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.hstat {
+  padding: 14px 18px; border-radius: var(--rl);
+  border: 0.5px solid var(--border); position: relative; overflow: hidden;
+}
+.hstat::after {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+}
+.hs-o { background: var(--os); } .hs-o::after { background: var(--orange); }
+.hs-g { background: var(--gs); } .hs-g::after { background: var(--green); }
+.hs-b { background: var(--bs); } .hs-b::after { background: var(--blue); }
+.hs-r { background: var(--rs); } .hs-r::after { background: var(--red); }
+.hs-num {
+  font-family: 'Syne', sans-serif;
+  font-size: 26px; font-weight: 800; color: var(--text); line-height: 1;
+}
+.hs-lbl { font-size: 10.5px; color: var(--text2); font-weight: 500; margin-top: 3px; }
+
+/* ============================================================
+   DASHBOARD MAIN GRID
+   ============================================================ */
+.dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 22px; }
+.span2 { grid-column: span 2; }
+
+/* Quick actions */
+.qa-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+.qa-btn {
+  padding: 14px 16px; border-radius: var(--r);
+  border: 0.5px solid var(--border); background: var(--bg3);
+  cursor: pointer; transition: all 0.15s; text-align: left; display: block;
+}
+.qa-btn:hover { border-color: var(--border2); background: var(--bg4); }
+.qa-btn-primary { background: var(--os); border-color: rgba(232,89,60,0.3); }
+.qa-btn-primary:hover { background: var(--os2); }
+.qa-icon  { font-size: 16px; color: var(--text2); margin-bottom: 7px; }
+.qa-label { font-size: 12.5px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+.qa-sub   { font-size: 10.5px; color: var(--text3); }
+
+/* ============================================================
+   FILTER BAR
+   ============================================================ */
+.filter-bar { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 14px; align-items: center; }
+.fchip {
+  padding: 5px 13px; border-radius: 20px; font-size: 11.5px; font-weight: 500;
+  border: 0.5px solid var(--border2); background: transparent; color: var(--text2);
+  cursor: pointer; transition: all 0.14s; font-family: 'DM Sans', sans-serif;
+}
+.fchip:hover { background: var(--bg3); color: var(--text); }
+.fchip.active { background: var(--orange); border-color: var(--orange); color: #fff; }
+.fsearch {
+  padding: 5px 12px; border-radius: 20px; border: 0.5px solid var(--border2);
+  background: var(--bg3); color: var(--text); font-size: 11.5px;
+  font-family: 'DM Sans', sans-serif; outline: none; min-width: 180px;
+}
+.fsearch:focus { border-color: var(--orange); }
+.fselect2 {
+  padding: 5px 28px 5px 11px; border-radius: 20px; border: 0.5px solid var(--border2);
+  background: var(--bg3); color: var(--text); font-size: 11.5px;
+  font-family: 'DM Sans', sans-serif; outline: none; cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%235a5956' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 9px center;
+  -webkit-appearance: none; appearance: none;
+}
+
+/* ============================================================
+   ANALYTICS
+   ============================================================ */
+.kpi-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 18px; }
+.kpi-card {
+  background: var(--bg2); border: 0.5px solid var(--border);
+  border-radius: var(--rl); padding: 16px; text-align: center;
+}
+.kpi-num {
+  font-family: 'Syne', sans-serif;
+  font-size: 28px; font-weight: 800; line-height: 1; margin-bottom: 4px;
+}
+.kpi-lbl { font-size: 10px; font-weight: 700; color: var(--text3); letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 3px; }
+.kpi-sub { font-size: 10.5px; color: var(--text3); }
+.an-grid2 { display: grid; grid-template-columns: 2fr 1fr; gap: 14px; margin-bottom: 14px; }
+.an-grid  { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+.chart-bars {
+  display: flex; align-items: flex-end; gap: 4px; height: 110px; padding-top: 6px;
+}
+.cbar-group { flex: 1; display: flex; gap: 2px; align-items: flex-end; justify-content: center; }
+.cbar-col   { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.cbar-rect  { width: 100%; border-radius: 3px 3px 0 0; transition: opacity 0.15s; }
+.cbar-rect:hover { opacity: 0.75; }
+.cbar-val   { font-size: 8px; font-weight: 700; }
+.chart-xlbl { display: flex; justify-content: space-around; margin-top: 4px; }
+.chart-xlbl span { font-size: 9px; color: var(--text3); }
+.chart-legend { display: flex; gap: 14px; margin-top: 10px; }
+.cl-item  { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text2); }
+.cl-dot   { width: 8px; height: 8px; border-radius: 2px; }
+.officer-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+.officer-card {
+  background: var(--bg3); border: 0.5px solid var(--border);
+  border-radius: var(--rl); padding: 14px; transition: border-color 0.15s;
+}
+.officer-card:hover { border-color: var(--border2); }
+.off-av {
+  width: 38px; height: 38px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; margin-bottom: 9px;
+}
+.oa-o { background: var(--os); color: var(--orange); }
+.oa-b { background: var(--bs); color: var(--blue);   }
+.oa-g { background: var(--gs); color: var(--green);  }
+.oa-p { background: var(--ps); color: var(--purple); }
+.off-name { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.off-dept { font-size: 10.5px; color: var(--text3); margin-bottom: 8px; }
+.off-stats { display: flex; gap: 14px; }
+.off-s   { font-size: 10.5px; color: var(--text2); }
+.off-n   { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 800; color: var(--text); display: block; }
+
+/* ============================================================
+   SUCCESS STATE
+   ============================================================ */
+.success-wrap { text-align: center; padding: 44px 20px; }
+.success-icon {
+  width: 58px; height: 58px; border-radius: 50%;
+  background: var(--gs); display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 16px;
+}
+.success-id {
+  font-family: 'Courier New', monospace; font-size: 20px; font-weight: 700;
+  color: var(--purple); background: var(--ps);
+  padding: 7px 18px; border-radius: var(--r);
+  display: inline-block; margin: 10px 0 8px;
+}
+.sms-box {
+  background: var(--bg3); border: 0.5px solid var(--border);
+  border-radius: var(--r); padding: 12px 14px;
+  font-size: 12px; color: var(--text2); text-align: left; line-height: 1.7; margin: 14px 0;
+}
+
+/* ============================================================
+   TRACK PAGE
+   ============================================================ */
+.track-wrap { max-width: 560px; margin: 0 auto; }
+.track-row { display: flex; gap: 8px; margin-bottom: 22px; }
+.track-input {
+  flex: 1; padding: 10px 14px; border-radius: var(--r);
+  border: 0.5px solid var(--border2); background: var(--bg3); color: var(--text);
+  font-size: 13.5px; font-family: 'DM Sans', sans-serif; outline: none;
+  letter-spacing: 0.05em; text-transform: uppercase; transition: border-color 0.15s;
+}
+.track-input:focus { border-color: var(--orange); }
+.demo-demos {
+  text-align: center; padding: 22px 0;
+  border: 0.5px dashed var(--border); border-radius: var(--rl);
+}
+.demo-demos p { font-size: 12px; color: var(--text3); margin-bottom: 12px; }
+.demo-btns { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+
+/* ============================================================
+   DETAIL PANEL
+   ============================================================ */
+.detail-row {
+  display: flex; gap: 12px; padding: 9px 0;
+  border-bottom: 0.5px solid var(--border); font-size: 12.5px;
+}
+.detail-row:last-child { border-bottom: none; }
+.detail-key   { min-width: 110px; color: var(--text3); font-weight: 500; flex-shrink: 0; }
+.detail-value { color: var(--text); flex: 1; word-break: break-word; }
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+.footer {
+  border-top: 0.5px solid var(--border); margin-top: 32px;
+}
+.footer-inner {
+  max-width: 1300px; margin: 0 auto; padding: 18px 24px;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; flex-wrap: wrap;
+}
+.footer-logo { font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700; color: var(--text3); }
+.footer-links { display: flex; gap: 14px; }
+.footer-links a { font-size: 11.5px; color: var(--text3); transition: color 0.14s; }
+.footer-links a:hover { color: var(--text); }
+.footer-note { font-size: 10.5px; color: var(--text3); }
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 900px) {
+  .dash-grid { grid-template-columns: 1fr; }
+  .span2     { grid-column: span 1; }
+  .hero-inner { flex-direction: column; gap: 22px; }
+  .hero-stats { grid-template-columns: 1fr 1fr; width: 100%; }
+  .kpi-grid  { grid-template-columns: 1fr 1fr; }
+  .an-grid2, .an-grid { grid-template-columns: 1fr; }
+  .fgrid2, .fgrid3 { grid-template-columns: 1fr; }
+  .nav-links { display: none; }
+}
+@media (max-width: 500px) {
+  .container, .container-sm { padding: 14px; }
+  .hero-inner { padding: 0 14px; }
+  .hero-h1 { font-size: 22px; }
+  .kpi-grid { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     NAVBAR
+     ============================================================ -->
+<nav class="navbar">
+  <div class="nav-inner">
+    <div class="nav-logo" onclick="showPage('dashboard')">
+      <div class="nav-logo-icon">M</div>
+      <div>
+        <div class="nav-logo-name">MuniCare</div>
+        <div class="nav-logo-sub">Coimbatore Corp.</div>
+      </div>
+    </div>
+    <div class="nav-links">
+      <button class="nav-link active" id="nl-dashboard"  onclick="showPage('dashboard')">Dashboard</button>
+      <button class="nav-link"        id="nl-complaints" onclick="showPage('complaints')">Complaints</button>
+      <button class="nav-link"        id="nl-file"       onclick="showPage('file')">File Complaint</button>
+      <button class="nav-link"        id="nl-track"      onclick="showPage('track')">Track</button>
+      <button class="nav-link"        id="nl-analytics"  onclick="showPage('analytics')">Analytics</button>
+    </div>
+    <div class="nav-right">
+      <div id="api-status" class="nav-badge" style="background:var(--rs);color:var(--red);display:flex;align-items:center;gap:5px">
+        <span style="width:6px;height:6px;border-radius:50%;background:currentColor"></span>
+        API: Offline
+      </div>
+      <div class="nav-badge">Admin</div>
+      <div class="nav-avatar">AK</div>
+    </div>
+  </div>
+</nav>
+
+
+<!-- ============================================================
+     PAGE: DASHBOARD
+     ============================================================ -->
+<div id="page-dashboard" class="page active">
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-inner">
+      <div class="hero-left">
+        <div class="hero-tag">Live System</div>
+        <h1 class="hero-h1">Municipal Complaint<br>Management Website</h1>
+        <p class="hero-p"> real-time tracking, and ward-level analytics  Municipal Corporation.</p>
+        <div class="hero-cta">
+          <button class="btn btn-orange btn-lg" onclick="showPage('file')">+ File Complaint</button>
+          <button class="btn btn-ghost btn-lg" onclick="showPage('track')">Track Status</button>
+        </div>
+      </div>
+      <div class="hero-stats">
+        <div class="hstat hs-o"><div class="hs-num" id="cnt-total">1,284</div><div class="hs-lbl">Total Complaints</div></div>
+        <div class="hstat hs-g"><div class="hs-num" id="cnt-resolved">891</div><div class="hs-lbl">Resolved</div></div>
+        <div class="hstat hs-b"><div class="hs-num" id="cnt-progress">347</div><div class="hs-lbl">In Progress</div></div>
+        <div class="hstat hs-r"><div class="hs-num" id="cnt-sla">46</div><div class="hs-lbl">SLA Breaches</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="dash-grid">
+
+      <!-- Recent Complaints -->
+      <div class="card span2">
+        <div class="card-hd">
+          <div class="card-title">Recent Complaints</div>
+          <div class="live-dot"><span></span>Live</div>
+        </div>
+        <div class="tbl-wrap">
+          <table class="ctbl">
+            <thead>
+              <tr>
+                <th>ID</th><th>Issue</th><th>Category</th><th>Ward</th><th>Priority</th><th>Status</th><th>Filed</th>
+              </tr>
+            </thead>
+            <tbody id="dash-tbl-body"></tbody>
+          </table>
+        </div>
+        <div class="card-ft">
+          <button class="btn btn-sm" onclick="showPage('complaints')" style="color:var(--orange);border-color:transparent;background:transparent;padding:0;font-size:12px">View all complaints →</button>
+        </div>
+      </div>
+
+      <!-- Category Breakdown -->
+      <div class="card">
+        <div class="card-hd"><div class="card-title">Category Breakdown</div></div>
+        <div class="cat-bars">
+          <div class="cb-row"><div class="cb-lbl">Road / Pothole</div><div class="cb-track"><div class="cb-fill cf-o" style="width:82%"></div></div><div class="cb-cnt">342</div></div>
+          <div class="cb-row"><div class="cb-lbl">Garbage</div><div class="cb-track"><div class="cb-fill cf-a" style="width:60%"></div></div><div class="cb-cnt">251</div></div>
+          <div class="cb-row"><div class="cb-lbl">Water Supply</div><div class="cb-track"><div class="cb-fill cf-b" style="width:45%"></div></div><div class="cb-cnt">188</div></div>
+          <div class="cb-row"><div class="cb-lbl">Drainage</div><div class="cb-track"><div class="cb-fill cf-p" style="width:38%"></div></div><div class="cb-cnt">160</div></div>
+          <div class="cb-row"><div class="cb-lbl">Electrical</div><div class="cb-track"><div class="cb-fill cf-g" style="width:28%"></div></div><div class="cb-cnt">118</div></div>
+          <div class="cb-row"><div class="cb-lbl">Other</div><div class="cb-track"><div class="cb-fill cf-x" style="width:17%"></div></div><div class="cb-cnt">72</div></div>
+        </div>
+        <div class="card-ft">
+          <button class="btn btn-sm" onclick="showPage('analytics')" style="color:var(--orange);border-color:transparent;background:transparent;padding:0;font-size:12px">Full analytics →</button>
+        </div>
+      </div>
+
+      <!-- Ward Heatmap -->
+      <div class="card">
+        <div class="card-hd"><div class="card-title">Ward Heatmap</div><span style="font-size:11px;color:var(--text3)">Click to filter</span></div>
+        <div class="ward-grid">
+          <div class="ward-cell wc-h" onclick="showPage('complaints','Ward 1')"><div class="wn">Ward 1</div><div class="wc">98</div><div class="wa">Gandhipuram</div></div>
+          <div class="ward-cell wc-m" onclick="showPage('complaints','Ward 2')"><div class="wn">Ward 2</div><div class="wc">74</div><div class="wa">RS Puram</div></div>
+          <div class="ward-cell wc-l" onclick="showPage('complaints','Ward 3')"><div class="wn">Ward 3</div><div class="wc">51</div><div class="wa">Peelamedu</div></div>
+          <div class="ward-cell wc-h" onclick="showPage('complaints','Ward 4')"><div class="wn">Ward 4</div><div class="wc">89</div><div class="wa">Singanallur</div></div>
+          <div class="ward-cell wc-s" onclick="showPage('complaints','Ward 5')"><div class="wn">Ward 5</div><div class="wc">32</div><div class="wa">Saibaba Col.</div></div>
+          <div class="ward-cell wc-m" onclick="showPage('complaints','Ward 6')"><div class="wn">Ward 6</div><div class="wc">67</div><div class="wa">Vadavalli</div></div>
+        </div>
+        <div class="ward-legend">
+          <span class="wleg" style="background:var(--gs);color:var(--green)">Low</span>
+          <span class="wleg" style="background:var(--ams);color:var(--amber)">Medium</span>
+          <span class="wleg" style="background:var(--rs);color:var(--red)">High</span>
+        </div>
+      </div>
+
+      <!-- Live Activity -->
+      <div class="card">
+        <div class="card-hd"><div class="card-title">Live Activity</div><div class="live-dot"><span></span></div></div>
+        <div class="timeline">
+          <div class="tl-item tl-orange"><div class="tl-dot"></div><div><div class="tl-title">MUN-1092 filed by citizen</div><div class="tl-meta">Road/Pothole · AI: High · 2 mins ago</div></div></div>
+          <div class="tl-item tl-blue"><div class="tl-dot"></div><div><div class="tl-title">MUN-1085 assigned to Ravi Kumar</div><div class="tl-meta">Public Works Dept · 18 mins ago</div></div></div>
+          <div class="tl-item tl-green"><div class="tl-dot"></div><div><div class="tl-title">MUN-1078 marked resolved</div><div class="tl-meta">Resolved in 2.4 days · Within SLA</div></div></div>
+          <div class="tl-item tl-blue"><div class="tl-dot"></div><div><div class="tl-title">MUN-1079 field visit done</div><div class="tl-meta">Officer: Suresh M. · 2 hrs ago</div></div></div>
+          <div class="tl-item tl-red"><div class="tl-dot"></div><div><div class="tl-title">MUN-1076 SLA breach — escalated</div><div class="tl-meta">Auto-escalated to Ward Supervisor</div></div></div>
+          <div class="tl-item tl-gray"><div class="tl-dot"></div><div><div class="tl-title">MUN-1074 marked duplicate by AI</div><div class="tl-meta">Merged with MUN-1062 · 5 hrs ago</div></div></div>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="card">
+        <div class="card-hd"><div class="card-title">Quick Actions</div></div>
+        <div class="qa-grid">
+          <div class="qa-btn qa-btn-primary" onclick="showPage('file')">
+            <div class="qa-icon">+</div>
+            <div class="qa-label">File New Complaint</div>
+            <div class="qa-sub">AI auto-categorization</div>
+          </div>
+          <div class="qa-btn" onclick="showPage('track')">
+            <div class="qa-icon">⟳</div>
+            <div class="qa-label">Track Complaint</div>
+            <div class="qa-sub">Enter complaint ID</div>
+          </div>
+          <div class="qa-btn" onclick="showPage('analytics')">
+            <div class="qa-icon">▶</div>
+            <div class="qa-label">View Analytics</div>
+            <div class="qa-sub">Charts & ward reports</div>
+          </div>
+          <div class="qa-btn" onclick="showPage('complaints')">
+            <div class="qa-icon">≡</div>
+            <div class="qa-label">All Complaints</div>
+            <div class="qa-sub">Filter & search</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div><!-- end dashboard -->
+
+
+<!-- ============================================================
+     PAGE: FILE COMPLAINT
+     ============================================================ -->
+<div id="page-file" class="page">
+  <div class="page-hdr">
+    <div class="page-hdr-inner">
+      <div>
+        <div class="page-title">File a Complaint</div>
+        <div class="page-sub">AI will auto-categorize and route to the right department</div>
+      </div>
+      <button class="btn" onclick="showPage('complaints')">View all complaints</button>
+    </div>
+  </div>
+
+  <div class="container-sm">
+
+    <!-- STEPPER -->
+    <div class="stepper" id="file-stepper">
+      <div class="step-w"><div class="step-c sc-active" id="fsc1">1</div><div class="step-lbl sl-active" id="fsl1">Complaint Details</div></div>
+      <div class="step-line" id="fline1"></div>
+      <div class="step-w"><div class="step-c sc-idle" id="fsc2">2</div><div class="step-lbl sl-idle" id="fsl2">Location</div></div>
+      <div class="step-line" id="fline2"></div>
+      <div class="step-w"><div class="step-c sc-idle" id="fsc3">3</div><div class="step-lbl sl-idle" id="fsl3">Review</div></div>
+      <div class="step-line" id="fline3"></div>
+      <div class="step-w"><div class="step-c sc-idle" id="fsc4">4</div><div class="step-lbl sl-idle" id="fsl4">Submitted</div></div>
+    </div>
+
+    <!-- STEP 1 -->
+    <div id="fstep1">
+      <div class="card" style="margin-bottom:12px">
+        <div class="sec-label"><div class="sec-num">1</div>Citizen Information</div>
+        <div class="fgrid2">
+          <div class="ffield"><label class="flabel">Full name <span class="req">*</span></label><input type="text" class="finput" id="fn-name" placeholder="Enter your full name"></div>
+          <div class="ffield"><label class="flabel">Mobile number <span class="req">*</span></label><input type="tel" class="finput" id="fn-phone" placeholder="+91 XXXXX XXXXX"></div>
+        </div>
+        <div class="fgrid2">
+          <div class="ffield"><label class="flabel">Email address</label><input type="email" class="finput" id="fn-email" placeholder="your@email.com"></div>
+          <div class="ffield"><label class="flabel">Ward <span class="req">*</span></label>
+            <input type="text" class="finput" id="fn-ward" list="ward-list" placeholder="Type or select ward">
+            <datalist id="ward-list">
+              <option value="Ward 1 - Gandhipuram">
+              <option value="Ward 2 - RS Puram">
+              <option value="Ward 3 - Peelamedu">
+              <option value="Ward 4 - Singanallur">
+              <option value="Ward 5 - Saibaba Colony">
+              <option value="Ward 6 - Vadavalli">
+            </datalist>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:12px">
+        <div class="sec-label"><div class="sec-num">2</div>Describe the Problem</div>
+        <div class="ffield">
+          <label class="flabel">Complaint description <span class="req">*</span></label>
+          <textarea class="ftextarea" id="fn-desc" placeholder="Describe the issue — what you see, exact location, how long it has been there, any safety risk..." oninput="aiReset()"></textarea>
+        </div>
+        <div style="display:flex;justify-content:flex-end;margin-top:4px">
+          <button class="btn btn-purple" id="fn-analyze-btn" onclick="doAIAnalyze()">✦ Analyze with AI</button>
+        </div>
+      </div>
+
+      <!-- AI ZONE -->
+      <div class="ai-zone">
+        <div class="ai-zone-hd">
+          <div class="ai-icon">✦</div>
+          <div><div class="ai-name">AI Auto-Categorizer</div><div class="ai-sub">Powered by Claude · Instant classification</div></div>
+        </div>
+        <div id="ai-idle-msg"><p class="ai-idle">Type your complaint above and click "Analyze with AI" to auto-detect category, priority, department, and duplicate risk.</p></div>
+        <div id="ai-load-row" style="display:none"><div class="ai-load">Analyzing complaint<div class="ai-dot"></div><div class="ai-dot"></div><div class="ai-dot"></div></div></div>
+        <div id="ai-result-zone" style="display:none">
+          <div class="ai-chips" id="ai-chips-row"></div>
+          <div class="ai-summary-box" id="ai-summary-text"></div>
+          <div style="display:flex;justify-content:flex-end;margin-top:9px">
+            <span style="font-size:10.5px;color:#7a72d0">✓ Fields auto-filled below from AI analysis</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:12px">
+        <div class="sec-label"><div class="sec-num">3</div>Category &amp; Priority <span style="font-size:11px;color:var(--purple);font-weight:400;margin-left:4px">(AI-filled)</span></div>
+        <div class="fgrid3">
+          <div class="ffield"><label class="flabel">Category <span class="req">*</span></label>
+            <select class="fselect" id="fn-cat">
+              <option>Road / Pothole</option><option>Water Supply</option>
+              <option>Drainage / Sewage</option><option>Garbage / Waste</option>
+              <option>Electrical / Streetlight</option><option>Encroachment</option>
+              <option>Noise Pollution</option><option>Other</option>
+            </select>
+          </div>
+          <div class="ffield"><label class="flabel">Priority</label>
+            <select class="fselect" id="fn-pri">
+              <option>Low</option><option>Medium</option><option selected>High</option><option>Critical</option>
+            </select>
+          </div>
+          <div class="ffield"><label class="flabel">Department</label>
+            <select class="fselect" id="fn-dept">
+              <option>Public Works</option><option>Water Board</option>
+              <option>Sanitation</option><option>Electrical</option>
+              <option>BBMP</option><option>Other</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:12px">
+        <div class="sec-label"><div class="sec-num">4</div>Photo Evidence <span style="font-weight:400;color:var(--text3);font-size:12px">(optional)</span></div>
+        <div class="photo-zone" onclick="document.getElementById('fn-photo-input').click()">
+          <div class="photo-zone-icon">+</div>
+          <div class="photo-zone-txt">Click to upload photos · Max 5 · Each under 5 MB</div>
+          <input type="file" id="fn-photo-input" multiple accept="image/*" style="display:none" onchange="handlePhotoUpload(this)">
+        </div>
+        <div class="photo-thumbs" id="fn-photo-thumbs"></div>
+      </div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-top:0.5px solid var(--border)">
+        <span style="font-size:11.5px;color:var(--text3)">Step 1 of 3</span>
+        <button class="btn btn-orange" onclick="fileGoPage(2)">Next: Add Location →</button>
+      </div>
+    </div><!-- end fstep1 -->
+
+    <!-- STEP 2 -->
+    <div id="fstep2" style="display:none">
+      <div class="card" style="margin-bottom:12px">
+        <div class="sec-label"><div class="sec-num">1</div>Address Details</div>
+        <div class="ffield"><label class="flabel">Street address / landmark <span class="req">*</span></label><input type="text" class="finput" id="fn-addr" placeholder="e.g. Anna Nagar Main Road, near Govt. School, Coimbatore"></div>
+        <div class="fgrid2">
+          <div class="ffield"><label class="flabel">Nearest landmark</label><input type="text" class="finput" id="fn-landmark" placeholder="Bus stop, temple, school..."></div>
+          <div class="ffield"><label class="flabel">Pin code</label><input type="text" class="finput" id="fn-pin" placeholder="641001" maxlength="6"></div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:12px">
+        <div class="sec-label"><div class="sec-num">2</div>GPS / Map Location</div>
+        <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+          <button class="btn btn-green btn-sm" onclick="useGPS()">Use GPS Location</button>
+          <button class="btn btn-sm">Pin on Map</button>
+          <button class="btn btn-sm">Enter Manually</button>
+        </div>
+        <div class="map-box" id="file-map">
+          <span class="map-caption">Click to pin location ↗</span>
+        </div>
+        <div class="gps-ok" id="gps-ok-msg" style="display:none">GPS locked · 11.0168° N, 76.9558° E · Accuracy ±8m</div>
+      </div>
+
+      <div style="display:flex;justify-content:space-between;padding:14px 0;border-top:0.5px solid var(--border)">
+        <button class="btn" onclick="fileGoPage(1)">← Back</button>
+        <button class="btn btn-orange" onclick="fileGoPage(3)">Next: Review & Submit →</button>
+      </div>
+    </div><!-- end fstep2 -->
+
+    <!-- STEP 3 -->
+    <div id="fstep3" style="display:none">
+      <div class="card" style="margin-bottom:12px">
+        <div class="sec-label"><div class="sec-num">3</div>Review Your Complaint</div>
+        <div id="fn-review-body"></div>
+      </div>
+      <div class="card" style="margin-bottom:12px;background:#0e0c1a;border-color:rgba(130,120,224,0.22)">
+        <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#c4bdf0;margin-bottom:11px">What happens after you submit?</div>
+        <div style="display:flex;flex-direction:column;gap:9px">
+          <div style="display:flex;gap:9px;align-items:flex-start"><div style="width:20px;height:20px;border-radius:50%;background:var(--ps);color:var(--purple);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0">1</div><div style="font-size:12px;color:var(--text2)">Complaint gets a unique ID and saved to MongoDB Atlas with full AI classification</div></div>
+          <div style="display:flex;gap:9px;align-items:flex-start"><div style="width:20px;height:20px;border-radius:50%;background:var(--ps);color:var(--purple);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0">2</div><div style="font-size:12px;color:var(--text2)">Auto-routed to the correct department based on AI category detection</div></div>
+          <div style="display:flex;gap:9px;align-items:flex-start"><div style="width:20px;height:20px;border-radius:50%;background:var(--ps);color:var(--purple);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0">3</div><div style="font-size:12px;color:var(--text2)">Officer assigned within 24 hours — SMS notification sent to your mobile</div></div>
+          <div style="display:flex;gap:9px;align-items:flex-start"><div style="width:20px;height:20px;border-radius:50%;background:var(--ps);color:var(--purple);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0">4</div><div style="font-size:12px;color:var(--text2)">High priority resolved within 5 working days (SLA enforced with auto-escalation)</div></div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:14px 0;border-top:0.5px solid var(--border)">
+        <button class="btn" onclick="fileGoPage(2)">← Back</button>
+        <button class="btn btn-green" onclick="submitComplaint()">✓ Submit Complaint</button>
+      </div>
+    </div><!-- end fstep3 -->
+
+    <!-- STEP 4: SUCCESS -->
+    <div id="fstep4" style="display:none">
+      <div class="success-wrap">
+        <div class="success-icon">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#1da876" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--text)">Complaint Submitted!</div>
+        <div style="font-size:12.5px;color:var(--text2);margin-top:6px">AI-classified and routed to the correct department</div>
+        <div class="success-id" id="fn-result-id">MUN-XXXX</div>
+        <div style="font-size:11.5px;color:var(--text3)">Save this ID to track your complaint status</div>
+        <div class="sms-box" id="fn-sms-preview"></div>
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:4px">
+          <button class="btn btn-purple" onclick="showPage('track')">Track This Complaint →</button>
+          <button class="btn" onclick="resetFileForm()">File Another</button>
+          <button class="btn" onclick="showPage('dashboard')">Back to Dashboard</button>
+        </div>
+      </div>
+    </div><!-- end fstep4 -->
+
+  </div><!-- container-sm -->
+</div><!-- end file -->
+
+
+<!-- ============================================================
+     PAGE: ALL COMPLAINTS
+     ============================================================ -->
+<div id="page-complaints" class="page">
+  <div class="page-hdr">
+    <div class="page-hdr-inner">
+      <div>
+        <div class="page-title">All Complaints</div>
+        <div class="page-sub">Filter, search and manage all municipal complaints</div>
+      </div>
+      <button class="btn btn-orange" onclick="showPage('file')">+ File New</button>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="filter-bar">
+      <input type="text" class="fsearch" id="cmp-search" placeholder="Search by ID, issue, ward..." oninput="renderComplaintsTable()">
+      <button class="fchip active" onclick="setCmpFilter('all',this)">All</button>
+      <button class="fchip" onclick="setCmpFilter('Pending',this)">Pending</button>
+      <button class="fchip" onclick="setCmpFilter('In Progress',this)">In Progress</button>
+      <button class="fchip" onclick="setCmpFilter('Resolved',this)">Resolved</button>
+      <button class="fchip" onclick="setCmpFilter('Critical',this)">Critical</button>
+      <select class="fselect2" id="cmp-cat-filter" onchange="renderComplaintsTable()">
+        <option value="">All categories</option>
+        <option>Road / Pothole</option><option>Water Supply</option>
+        <option>Drainage / Sewage</option><option>Garbage / Waste</option>
+        <option>Electrical / Streetlight</option><option>Other</option>
+      </select>
+    </div>
+
+    <div class="card" style="padding:0;overflow:hidden">
+      <div class="tbl-wrap">
+        <table class="ctbl">
+          <thead>
+            <tr>
+              <th>ID</th><th>Issue</th><th>Category</th><th>Ward</th><th>Priority</th><th>Status</th><th>Filed</th><th></th>
+            </tr>
+          </thead>
+          <tbody id="cmp-tbl-body"></tbody>
+        </table>
+      </div>
+      <div id="cmp-no-results" style="display:none;text-align:center;padding:36px;color:var(--text3);font-size:13px">No complaints match the current filters</div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-size:11.5px;color:var(--text3)">
+      <div id="cmp-result-count"></div>
+      <button class="btn btn-sm btn-orange" onclick="showPage('file')">+ File New Complaint</button>
+    </div>
+  </div>
+</div><!-- end complaints -->
+
+
+<!-- ============================================================
+     PAGE: TRACK
+     ============================================================ -->
+<div id="page-track" class="page">
+  <div class="page-hdr">
+    <div class="page-hdr-inner">
+      <div>
+        <div class="page-title">Track Your Complaint</div>
+        <div class="page-sub">Enter complaint ID to check real-time status and timeline</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="track-wrap">
+      <div class="track-row">
+        <input type="text" class="track-input" id="track-input" placeholder="e.g. MUN-1092" oninput="this.value=this.value.toUpperCase()">
+        <button class="btn btn-orange" onclick="doTrack()">Track →</button>
+      </div>
+
+      <div id="track-result-zone" style="display:none"></div>
+
+      <div id="track-demo-zone" class="demo-demos">
+        <p>Try a demo complaint ID:</p>
+        <div class="demo-btns">
+          <button class="btn btn-sm" onclick="tryTrack('MUN-1092')">MUN-1092 (Critical)</button>
+          <button class="btn btn-sm" onclick="tryTrack('MUN-1088')">MUN-1088 (Resolved)</button>
+          <button class="btn btn-sm" onclick="tryTrack('MUN-1090')">MUN-1090 (In Progress)</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div><!-- end track -->
+
+
+<!-- ============================================================
+     PAGE: ANALYTICS
+     ============================================================ -->
+<div id="page-analytics" class="page">
+  <div class="page-hdr">
+    <div class="page-hdr-inner">
+      <div>
+        <div class="page-title">Analytics &amp; Reports</div>
+        <div class="page-sub">Complaint trends, resolution rates, ward performance · March 2026</div>
+      </div>
+      <button class="btn" onclick="window.print()">Export Report</button>
+    </div>
+  </div>
+
+  <div class="container">
+
+    <!-- KPIs -->
+    <div class="kpi-grid">
+      <div class="kpi-card"><div class="kpi-lbl">Resolution Rate</div><div class="kpi-num" style="color:var(--green)">69%</div><div class="kpi-sub">891 of 1,284</div></div>
+      <div class="kpi-card"><div class="kpi-lbl">Avg Resolution Time</div><div class="kpi-num" style="color:var(--blue)">3.2<span style="font-size:14px">d</span></div><div class="kpi-sub">days average</div></div>
+      <div class="kpi-card"><div class="kpi-lbl">AI Categorized</div><div class="kpi-num" style="color:var(--purple)">94%</div><div class="kpi-sub">auto-classified</div></div>
+      <div class="kpi-card"><div class="kpi-lbl">SLA Breach Rate</div><div class="kpi-num" style="color:var(--red)">3.6%</div><div class="kpi-sub">46 complaints</div></div>
+    </div>
+
+    <div class="an-grid2">
+      <!-- Monthly Trend -->
+      <div class="card">
+        <div class="card-hd"><div class="card-title">Monthly Trend — Filed vs Resolved</div></div>
+        <div class="chart-bars" id="an-chart"></div>
+        <div class="chart-xlbl">
+          <span>Oct</span><span>Nov</span><span>Dec</span><span>Jan</span><span>Feb</span><span>Mar</span>
+        </div>
+        <div class="chart-legend">
+          <div class="cl-item"><div class="cl-dot" style="background:var(--orange)"></div>Filed</div>
+          <div class="cl-item"><div class="cl-dot" style="background:var(--green)"></div>Resolved</div>
+        </div>
+      </div>
+
+      <!-- Category -->
+      <div class="card">
+        <div class="card-hd"><div class="card-title">By Category</div></div>
+        <div class="cat-bars">
+          <div class="cb-row"><div class="cb-lbl" style="font-size:10.5px">Road / Pothole</div><div class="cb-track"><div class="cb-fill cf-o" style="width:82%"></div></div><div class="cb-cnt">342</div></div>
+          <div class="cb-row"><div class="cb-lbl" style="font-size:10.5px">Garbage</div><div class="cb-track"><div class="cb-fill cf-a" style="width:60%"></div></div><div class="cb-cnt">251</div></div>
+          <div class="cb-row"><div class="cb-lbl" style="font-size:10.5px">Water</div><div class="cb-track"><div class="cb-fill cf-b" style="width:45%"></div></div><div class="cb-cnt">188</div></div>
+          <div class="cb-row"><div class="cb-lbl" style="font-size:10.5px">Drainage</div><div class="cb-track"><div class="cb-fill cf-p" style="width:38%"></div></div><div class="cb-cnt">160</div></div>
+          <div class="cb-row"><div class="cb-lbl" style="font-size:10.5px">Electrical</div><div class="cb-track"><div class="cb-fill cf-g" style="width:28%"></div></div><div class="cb-cnt">118</div></div>
+          <div class="cb-row"><div class="cb-lbl" style="font-size:10.5px">Other</div><div class="cb-track"><div class="cb-fill cf-x" style="width:17%"></div></div><div class="cb-cnt">72</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="an-grid">
+      <!-- Ward Performance -->
+      <div class="card">
+        <div class="card-hd"><div class="card-title">Ward Performance</div></div>
+        <table class="ctbl">
+          <thead><tr><th>Ward</th><th>Filed</th><th>Resolved</th><th>Rate</th><th>Avg Days</th></tr></thead>
+          <tbody>
+            <tr><td style="font-weight:500;color:var(--text)">Ward 1 - Gandhipuram</td><td>98</td><td>61</td><td><span class="badge b-amber">62%</span></td><td class="td-muted">4.1d</td></tr>
+            <tr><td style="font-weight:500;color:var(--text)">Ward 2 - RS Puram</td><td>74</td><td>52</td><td><span class="badge b-blue">70%</span></td><td class="td-muted">3.2d</td></tr>
+            <tr><td style="font-weight:500;color:var(--text)">Ward 3 - Peelamedu</td><td>51</td><td>42</td><td><span class="badge b-green">82%</span></td><td class="td-muted">2.8d</td></tr>
+            <tr><td style="font-weight:500;color:var(--text)">Ward 4 - Singanallur</td><td>89</td><td>55</td><td><span class="badge b-amber">62%</span></td><td class="td-muted">4.5d</td></tr>
+            <tr><td style="font-weight:500;color:var(--text)">Ward 5 - Saibaba Col.</td><td>32</td><td>28</td><td><span class="badge b-green">88%</span></td><td class="td-muted">2.1d</td></tr>
+            <tr><td style="font-weight:500;color:var(--text)">Ward 6 - Vadavalli</td><td>67</td><td>44</td><td><span class="badge b-blue">66%</span></td><td class="td-muted">3.8d</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Officers -->
+      <div class="card">
+        <div class="card-hd"><div class="card-title">Top Officers</div></div>
+        <div class="officer-grid">
+          <div class="officer-card"><div class="off-av oa-g">RK</div><div class="off-name">Rajan Kumar</div><div class="off-dept">Public Works</div><div class="off-stats"><div class="off-s"><span class="off-n">42</span>Resolved</div><div class="off-s"><span class="off-n">2.1d</span>Avg SLA</div></div></div>
+          <div class="officer-card"><div class="off-av oa-b">SM</div><div class="off-name">Suresh M.</div><div class="off-dept">Electrical Dept</div><div class="off-stats"><div class="off-s"><span class="off-n">38</span>Resolved</div><div class="off-s"><span class="off-n">2.8d</span>Avg SLA</div></div></div>
+          <div class="officer-card"><div class="off-av oa-o">PV</div><div class="off-name">Priya V.</div><div class="off-dept">Water Board</div><div class="off-stats"><div class="off-s"><span class="off-n">35</span>Resolved</div><div class="off-s"><span class="off-n">3.1d</span>Avg SLA</div></div></div>
+          <div class="officer-card"><div class="off-av oa-p">MR</div><div class="off-name">Muthu R.</div><div class="off-dept">Sanitation</div><div class="off-stats"><div class="off-s"><span class="off-n">31</span>Resolved</div><div class="off-s"><span class="off-n">3.6d</span>Avg SLA</div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLA Breaches -->
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-hd"><div class="card-title">SLA Breach Alerts</div><span class="badge b-red">46 breaches</span></div>
+      <table class="ctbl">
+        <thead><tr><th>ID</th><th>Issue</th><th>Ward</th><th>Department</th><th>Days Overdue</th><th>Action</th></tr></thead>
+        <tbody>
+          <tr><td class="td-mono">MUN-1047</td><td class="td-issue">Pothole causing accidents daily</td><td class="td-muted">Ward 1</td><td class="td-muted">Public Works</td><td style="color:var(--red);font-weight:700">+8 days</td><td><button class="btn btn-sm" style="color:var(--orange);font-size:10.5px">Escalate</button></td></tr>
+          <tr><td class="td-mono">MUN-1038</td><td class="td-issue">Sewage overflow not cleaned</td><td class="td-muted">Ward 4</td><td class="td-muted">Sanitation</td><td style="color:var(--red);font-weight:700">+6 days</td><td><button class="btn btn-sm" style="color:var(--orange);font-size:10.5px">Escalate</button></td></tr>
+          <tr><td class="td-mono">MUN-1031</td><td class="td-issue">Water pipe leaking for 2 weeks</td><td class="td-muted">Ward 2</td><td class="td-muted">Water Board</td><td style="color:var(--amber);font-weight:700">+4 days</td><td><button class="btn btn-sm" style="color:var(--orange);font-size:10.5px">Escalate</button></td></tr>
+          </tbody>
+      </table>
+    </div>
+
+  </div>
+</div><!-- end analytics -->
+
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-logo">MuniCare — Coimbatore Municipal Corporation</div>
+    <div class="footer-links">
+      <a href="#">Privacy Policy</a>
+      <a href="#">Help</a>
+      <a href="#">Contact</a>
+    </div>
+    <div class="footer-note">AI powered by Claude · Database: MongoDB Atlas</div>
+  </div>
+</footer>
+
+
+<!-- ============================================================
+     JAVASCRIPT — ALL LOGIC
+     ============================================================ -->
+<script>
+
+/* ====== PAGE ROUTING ====== */
+const PAGES = ['dashboard','complaints','file','track','analytics'];
+let currentPage = 'dashboard';
+const API_URL = 'http://localhost:5000/api';
+let fileMap, trackMap, fileMarker, trackMarker;
+const DEFAULT_COORDS = [11.0168, 76.9558]; // Coimbatore
+
+async function showPage(name, wardFilter) {
+  PAGES.forEach(p => {
+    const pageEl = document.getElementById('page-'+p);
+    const linkEl = document.getElementById('nl-'+p);
+    if (pageEl) pageEl.classList.remove('active');
+    if (linkEl) linkEl.classList.remove('active');
+  });
+  const targetPage = document.getElementById('page-'+name);
+  const targetLink = document.getElementById('nl-'+name);
+  if (targetPage) targetPage.classList.add('active');
+  if (targetLink) targetLink.classList.add('active');
+  
+  currentPage = name;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  if (name === 'dashboard')   await initDashboard();
+  if (name === 'complaints')  { await initComplaints(wardFilter); }
+  if (name === 'analytics')   initAnalytics();
+  if (name === 'track')       { 
+    document.getElementById('track-result-zone').style.display='none'; 
+    document.getElementById('track-demo-zone').style.display='block'; 
+    document.getElementById('track-input').value=''; 
+  }
+  if (name === 'file') {
+    setTimeout(() => {
+      initFileMap();
+      if (fileMap) fileMap.invalidateSize();
+    }, 100);
+  }
+}
+
+function initFileMap() {
+  if (fileMap) return;
+  fileMap = L.map('file-map').setView(DEFAULT_COORDS, 13);
+  L.tileLayer('https://{s}.tile.osm.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(fileMap);
+
+  // Add Search Bar
+  const geocoder = L.Control.geocoder({
+    defaultMarkGeocode: false
+  })
+  .on('markgeocode', function(e) {
+    const { center } = e.geocode;
+    updateFileLocation(center.lat, center.lng);
+  })
+  .addTo(fileMap);
+
+  // Add Locate Me button
+  const locateMeControl = L.Control.extend({
+    options: { position: 'topleft' },
+    onAdd: function() {
+      const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
+      container.style.backgroundColor = 'white';
+      container.style.width = '34px';
+      container.style.height = '34px';
+      container.style.display = 'flex';
+      container.style.alignItems = 'center';
+      container.style.justifyContent = 'center';
+      container.style.cursor = 'pointer';
+      container.innerHTML = '📍';
+      container.title = 'Locate Me';
+      container.onclick = useGPS;
+      return container;
+    }
+  });
+  fileMap.addControl(new locateMeControl());
+
+  fileMap.on('click', (e) => {
+    const { lat, lng } = e.latlng;
+    updateFileLocation(lat, lng);
+  });
+}
+
+async function fetchAddress(lat, lng) {
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+    const data = await res.json();
+    if (data && data.display_name) {
+      document.getElementById('fn-addr').value = data.display_name;
+      
+      // Extract pin code if available
+      if (data.address && data.address.postcode) {
+        document.getElementById('fn-pin').value = data.address.postcode;
+      }
+
+      // AUTO-DETECT WARD
+      const addr = data.address || {};
+      const neighborhood = (addr.suburb || addr.neighbourhood || addr.city_district || addr.residential || "").toLowerCase();
+      
+      const wardMap = {
+        'gandhipuram': 'Ward 1 - Gandhipuram',
+        'r.s. puram': 'Ward 2 - RS Puram',
+        'rs puram': 'Ward 2 - RS Puram',
+        'peelamedu': 'Ward 3 - Peelamedu',
+        'singanallur': 'Ward 4 - Singanallur',
+        'saibaba colony': 'Ward 5 - Saibaba Colony',
+        'vadavalli': 'Ward 6 - Vadavalli'
+      };
+
+      const wardInput = document.getElementById('fn-ward');
+      let matchedWard = "";
+
+      for (const [key, value] of Object.entries(wardMap)) {
+        if (neighborhood.includes(key)) {
+          matchedWard = value;
+          break;
+        }
+      }
+
+      if (matchedWard) {
+        wardInput.value = matchedWard;
+      }
+    }
+  } catch (err) {
+    console.error("Address fetch error:", err);
+  }
+}
+
+function updateFileLocation(lat, lng) {
+  if (fileMarker) fileMarker.setLatLng([lat, lng]);
+  else fileMarker = L.marker([lat, lng]).addTo(fileMap);
+  
+  fileMap.setView([lat, lng], 15);
+  document.getElementById('gps-ok-msg').style.display = 'flex';
+  document.getElementById('gps-ok-msg').innerHTML = `Location pinned · ${lat.toFixed(4)}° N, ${lng.toFixed(4)}° E`;
+  
+  // Store for submission
+  window.currentLat = lat;
+  window.currentLng = lng;
+
+  // Auto-fetch address
+  fetchAddress(lat, lng);
+}
+
+/* ====== DATA STORE (MongoDB Integration) ====== */
+const STATIC_COMPLAINTS = [
+  { id:'MUN-1092', issue:'Pothole near Gandhipuram bus stop — vehicles swerving', category:'Road / Pothole', ward:'Ward 1', priority:'High', status:'Critical', filed:'2 hrs ago' },
+  { id:'MUN-1091', issue:'Garbage not collected for 3 consecutive days, foul smell', category:'Garbage / Waste', ward:'Ward 4', priority:'Medium', status:'Pending', filed:'4 hrs ago' },
+  { id:'MUN-1090', issue:'Streetlight broken on RS Puram main road junction', category:'Electrical / Streetlight', ward:'Ward 2', priority:'Medium', status:'In Progress', filed:'6 hrs ago' },
+  { id:'MUN-1089', issue:'Sewage overflow near primary school — health hazard', category:'Drainage / Sewage', ward:'Ward 1', priority:'High', status:'Critical', filed:'8 hrs ago' },
+  { id:'MUN-1088', issue:'Water supply disrupted for 2 continuous days', category:'Water Supply', ward:'Ward 3', priority:'High', status:'Resolved', filed:'Yesterday' },
+];
+
+async function fetchComplaints() {
+  try {
+    const res = await fetch(`${API_URL}/complaints`);
+    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+    const data = await res.json();
+    return data.map(c => ({
+      id: c.complaintId,
+      issue: (c.description || '').substring(0, 65) + (c.description?.length > 65 ? '…' : ''),
+      category: c.category || 'Other',
+      ward: c.ward || '—',
+      priority: c.priority || 'Medium',
+      status: c.status || 'Pending',
+      filed: fmtDate(c.createdAt)
+    }));
+  } catch (error) {
+    console.error('Error fetching complaints:', error);
+    return [];
+  }
+}
+
+async function getAllComplaints() {
+  const backendComplaints = await fetchComplaints();
+  // Merge backend complaints with static ones for demo purposes, 
+  // but prioritize backend ones
+  const seenIds = new Set(backendComplaints.map(c => c.id));
+  const filteredStatic = STATIC_COMPLAINTS.filter(c => !seenIds.has(c.id));
+  return [...backendComplaints, ...filteredStatic];
+}
+
+function fmtDate(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso), now = new Date();
+  const s = Math.floor((now-d)/1000);
+  if (s<60) return s+'s ago';
+  if (s<3600) return Math.floor(s/60)+' mins ago';
+  if (s<86400) return Math.floor(s/3600)+' hrs ago';
+  return d.toLocaleDateString('en-IN',{day:'numeric',month:'short'});
+}
+
+/* ====== HELPERS ====== */
+function priClass(p) { return {Low:'pd-low',Medium:'pd-med',High:'pd-high',Critical:'pd-crit'}[p]||'pd-med'; }
+function statusClass(s) { return {Pending:'sp-pending','In Progress':'sp-progress',Resolved:'sp-resolved',Critical:'sp-critical'}[s]||'sp-pending'; }
+function catChipClass(c) {
+  if (!c) return 'chip-other';
+  if (c.includes('Road')) return 'chip-road';
+  if (c.includes('Water')) return 'chip-water';
+  if (c.includes('Garb')||c.includes('garb')) return 'chip-garb';
+  if (c.includes('Drain')) return 'chip-drain';
+  if (c.includes('Elec')) return 'chip-elec';
+  return 'chip-other';
+}
+function catShort(c) { return (c||'Other').split('/')[0].trim(); }
+
+/* ====== DASHBOARD ====== */
+async function initDashboard() {
+  const all = await getAllComplaints();
+  const rows = all.slice(0,6);
+  document.getElementById('dash-tbl-body').innerHTML = rows.map(r=>`
+    <tr onclick="showPage('complaints')">
+      <td class="td-mono">${r.id}</td>
+      <td class="td-issue">${r.issue}</td>
+      <td><span class="badge ${catChipClass(r.category)}">${catShort(r.category)}</span></td>
+      <td class="td-muted">${r.ward}</td>
+      <td><span class="prio-dot ${priClass(r.priority)}"></span>${r.priority}</td>
+      <td><span class="badge ${statusClass(r.status)}">${r.status}</span></td>
+      <td class="td-muted">${r.filed}</td>
+    </tr>`).join('');
+    
+  // REAL-TIME COUNTERS (No more dummy offsets)
+  const total = all.length;
+  const resolved = all.filter(c => c.status === 'Resolved').length;
+  const inProgress = all.filter(c => c.status === 'In Progress' || c.status === 'Critical').length;
+  
+  // Simple SLA logic: Critical status or High priority older than 3 days
+  const now = new Date();
+  const slaBreaches = all.filter(c => {
+    if (c.status === 'Resolved') return false;
+    if (c.status === 'Critical') return true;
+    const filedDate = new Date(c.filed);
+    const daysOld = (now - filedDate) / (1000 * 60 * 60 * 24);
+    return c.priority === 'High' && daysOld > 3;
+  }).length;
+
+  animateNum(document.getElementById('cnt-total'), total);
+  animateNum(document.getElementById('cnt-resolved'), resolved);
+  animateNum(document.getElementById('cnt-progress'), inProgress);
+  animateNum(document.getElementById('cnt-sla'), slaBreaches);
+
+  // REAL-TIME CATEGORY BREAKDOWN
+  const catCounts = {};
+  all.forEach(c => {
+    const cat = catShort(c.category);
+    catCounts[cat] = (catCounts[cat] || 0) + 1;
+  });
+
+  const categories = [
+    { label: 'Road / Pothole', key: 'Road', class: 'cf-o' },
+    { label: 'Garbage', key: 'Garbage', class: 'cf-a' },
+    { label: 'Water Supply', key: 'Water', class: 'cf-b' },
+    { label: 'Drainage', key: 'Drain', class: 'cf-p' },
+    { label: 'Electrical', key: 'Elec', class: 'cf-g' },
+    { label: 'Other', key: 'Other', class: 'cf-x' }
+  ];
+
+  document.querySelector('.cat-bars').innerHTML = categories.map(cat => {
+    const count = catCounts[cat.key] || 0;
+    const percent = total > 0 ? Math.round((count / total) * 100) : 0;
+    return `
+      <div class="cb-row">
+        <div class="cb-lbl">${cat.label}</div>
+        <div class="cb-track"><div class="cb-fill ${cat.class}" style="width:${percent}%"></div></div>
+        <div class="cb-cnt">${count}</div>
+      </div>`;
+  }).join('');
+
+  // REAL-TIME WARD HEATMAP
+  const wardCounts = {};
+  all.forEach(c => {
+    if (c.ward) wardCounts[c.ward] = (wardCounts[c.ward] || 0) + 1;
+  });
+
+  const wards = [
+    { id: 'Ward 1', name: 'Gandhipuram' },
+    { id: 'Ward 2', name: 'RS Puram' },
+    { id: 'Ward 3', name: 'Peelamedu' },
+    { id: 'Ward 4', name: 'Singanallur' },
+    { id: 'Ward 5', name: 'Saibaba Col.' },
+    { id: 'Ward 6', name: 'Vadavalli' }
+  ];
+
+  document.querySelector('.ward-grid').innerHTML = wards.map(w => {
+    const count = wardCounts[w.id] || 0;
+    let colorClass = 'wc-s';
+    if (count > 10) colorClass = 'wc-h';
+    else if (count > 5) colorClass = 'wc-m';
+    else if (count > 0) colorClass = 'wc-l';
+    
+    return `
+      <div class="ward-cell ${colorClass}" onclick="showPage('complaints','${w.id}')">
+        <div class="wn">${w.id}</div>
+        <div class="wc">${count}</div>
+        <div class="wa">${w.name}</div>
+      </div>`;
+  }).join('');
+}
+
+/* ====== COMPLAINTS TABLE ====== */
+let cmpFilter = 'all';
+function setCmpFilter(f, el) {
+  cmpFilter = f;
+  document.querySelectorAll('.fchip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  renderComplaintsTable();
+}
+async function initComplaints(wardFilter) {
+  if (wardFilter) {
+    document.getElementById('cmp-search').value = wardFilter;
+  }
+  await renderComplaintsTable();
+}
+async function renderComplaintsTable() {
+  const search = (document.getElementById('cmp-search').value||'').toLowerCase();
+  const catF   = document.getElementById('cmp-cat-filter').value;
+  let data = await getAllComplaints();
+  if (cmpFilter !== 'all') data = data.filter(r=>r.status===cmpFilter);
+  if (catF)  data = data.filter(r=>r.category===catF);
+  if (search) data = data.filter(r=>
+    (r.id||'').toLowerCase().includes(search) ||
+    (r.issue||'').toLowerCase().includes(search) ||
+    (r.ward||'').toLowerCase().includes(search)
+  );
+  const tbody = document.getElementById('cmp-tbl-body');
+  document.getElementById('cmp-no-results').style.display = data.length ? 'none' : 'block';
+  document.getElementById('cmp-result-count').textContent = data.length + ' complaint' + (data.length!==1?'s':'');
+  tbody.innerHTML = data.map(r=>`
+    <tr onclick="trackComplaint('${r.id}')">
+      <td class="td-mono">${r.id}</td>
+      <td class="td-issue">${r.issue}</td>
+      <td><span class="badge ${catChipClass(r.category)}">${catShort(r.category)}</span></td>
+      <td class="td-muted">${r.ward}</td>
+      <td><span class="prio-dot ${priClass(r.priority)}"></span>${r.priority}</td>
+      <td><span class="badge ${statusClass(r.status)}">${r.status}</span></td>
+      <td class="td-muted">${r.filed}</td>
+      <td><button class="btn btn-sm" style="color:var(--orange);border:none;background:transparent;font-size:11px" onclick="event.stopPropagation();trackComplaint('${r.id}')">View →</button></td>
+    </tr>`).join('');
+}
+
+function trackComplaint(id) {
+  showPage('track');
+  setTimeout(()=>{ document.getElementById('track-input').value=id; doTrack(); }, 80);
+}
+
+/* ====== FILE COMPLAINT — STEPPER ====== */
+let fileStep = 1;
+let aiData = null;
+let photoCount = 0;
+
+function fileGoPage(n) {
+  document.getElementById('fstep'+fileStep).style.display = 'none';
+  document.getElementById('fstep'+n).style.display = 'block';
+  if (n===3) buildReview();
+  fileStep = n;
+  updateFileStepper();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function updateFileStepper() {
+  for (let i=1;i<=4;i++) {
+    const c = document.getElementById('fsc'+i);
+    const l = document.getElementById('fsl'+i);
+    if (i < fileStep)       { c.className='step-c sc-done'; c.innerHTML='✓'; l.className='step-lbl sl-done'; }
+    else if (i === fileStep){ c.className='step-c sc-active'; c.innerHTML=i; l.className='step-lbl sl-active'; }
+    else                    { c.className='step-c sc-idle'; c.innerHTML=i; l.className='step-lbl sl-idle'; }
+    if (i<=3) document.getElementById('fline'+i).className='step-line'+(i<fileStep?' done':'');
+  }
+}
+
+/* ====== AI ANALYSIS ====== */
+function aiReset() {
+  document.getElementById('ai-idle-msg').style.display = 'block';
+  document.getElementById('ai-result-zone').style.display = 'none';
+  aiData = null;
+}
+async function doAIAnalyze() {
+  const desc = (document.getElementById('fn-desc').value||'').trim();
+  if (desc.length < 8) { alert('Please write a more detailed description.'); return; }
+  document.getElementById('ai-idle-msg').style.display = 'none';
+  document.getElementById('ai-load-row').style.display = 'flex';
+  document.getElementById('ai-result-zone').style.display = 'none';
+  document.getElementById('fn-analyze-btn').disabled = true;
+  try {
+    const res = await fetch(`${API_URL}/analyze`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ description: desc })
+    });
+    if (!res.ok) throw new Error('AI analysis failed');
+    const r = await res.json();
+    aiData = r;
+    applyAIToForm(r);
+    renderAIResult(r);
+  } catch(e) {
+    console.error('AI Error:', e);
+    document.getElementById('ai-idle-msg').style.display = 'block';
+    document.getElementById('ai-idle-msg').querySelector('.ai-idle').textContent = 'Analysis failed — please select fields manually.';
+  }
+  document.getElementById('ai-load-row').style.display = 'none';
+  document.getElementById('fn-analyze-btn').disabled = false;
+}
+function applyAIToForm(r) {
+  const catMap = {'Road/Pothole':'Road / Pothole','Water Supply':'Water Supply','Drainage/Sewage':'Drainage / Sewage','Garbage/Waste':'Garbage / Waste','Electrical/Streetlight':'Electrical / Streetlight','Encroachment':'Encroachment','Noise Pollution':'Noise Pollution','Other':'Other'};
+  const setOpt = (id, val) => { 
+    const s = document.getElementById(id); 
+    if (!s) return;
+    if (s.tagName === 'INPUT') {
+      s.value = val;
+    } else {
+      for(const o of s.options){if(o.value===val||o.text===val||o.text===(catMap[val]||val)){o.selected=true;break;}} 
+    }
+  };
+  setOpt('fn-cat', catMap[r.category]||r.category||'');
+  setOpt('fn-pri', r.priority||'Medium');
+  setOpt('fn-dept', r.department||'Public Works');
+}
+function renderAIResult(r) {
+  const pc = {Low:'ac-low',Medium:'ac-med',High:'ac-high',Critical:'ac-high'};
+  document.getElementById('ai-chips-row').innerHTML =
+    `<span class="ai-chip ac-cat">${r.category||'—'}</span>
+     <span class="ai-chip ${pc[r.priority]||'ac-med'}">${r.priority||'—'} priority</span>
+     <span class="ai-chip ac-dept">${r.department||'—'}</span>
+     <span class="ai-chip ac-dup">Duplicate: ${r.duplicate_risk||'Low'}</span>
+     <span class="ai-chip ac-sla">SLA: ${r.sla_days||5} days</span>`;
+  document.getElementById('ai-summary-text').innerHTML =
+    `<strong>Summary:</strong> ${r.summary||''}<br>
+     <span style="font-size:11px;color:var(--text3);display:block;margin-top:4px"><strong>Officer action:</strong> ${r.action||''}</span>`;
+  document.getElementById('ai-result-zone').style.display = 'block';
+}
+
+/* ====== PHOTO UPLOAD (Real) ====== */
+let uploadedPhotos = []; // Array to store base64 strings
+
+function handlePhotoUpload(input) {
+  const files = Array.from(input.files);
+  if (uploadedPhotos.length + files.length > 5) {
+    alert("Maximum 5 photos allowed.");
+    return;
+  }
+
+  files.forEach(file => {
+    if (file.size > 5 * 1024 * 1024) {
+      alert(`File ${file.name} is too large. Max 5MB.`);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const base64 = e.target.result;
+      uploadedPhotos.push(base64);
+      renderThumbs();
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderThumbs() {
+  const wrap = document.getElementById('fn-photo-thumbs');
+  wrap.innerHTML = uploadedPhotos.map((img, idx) => `
+    <div class="thumb" style="background-image:url('${img}');background-size:cover;background-position:center">
+      <div class="thumb-del" onclick="delPhoto(${idx})">×</div>
+    </div>
+  `).join('');
+}
+
+function delPhoto(idx) {
+  uploadedPhotos.splice(idx, 1);
+  renderThumbs();
+}
+function useGPS() {
+  if (!navigator.geolocation) {
+    alert("Geolocation is not supported by your browser");
+    return;
+  }
+  
+  document.getElementById('gps-ok-msg').style.display = 'flex';
+  document.getElementById('gps-ok-msg').innerHTML = "Fetching GPS location...";
+  
+  navigator.geolocation.getCurrentPosition((pos) => {
+    const { latitude, longitude } = pos.coords;
+    updateFileLocation(latitude, longitude);
+  }, (err) => {
+    console.error(err);
+    alert("Unable to retrieve your location. Please pin manually on map.");
+    document.getElementById('gps-ok-msg').style.display = 'none';
+  });
+}
+
+/* ====== REVIEW ====== */
+function buildReview() {
+  const rows = [
+    ['Name',       document.getElementById('fn-name').value||'—'],
+    ['Mobile',     document.getElementById('fn-phone').value||'—'],
+    ['Ward',       document.getElementById('fn-ward').value||'—'],
+    ['Address',    document.getElementById('fn-addr').value||'—'],
+    ['Category',   document.getElementById('fn-cat').value],
+    ['Priority',   document.getElementById('fn-pri').value],
+    ['Department', document.getElementById('fn-dept').value],
+    ['Photos',     uploadedPhotos.length > 0 ? uploadedPhotos.length + ' file(s)' : 'None'],
+    ['AI Analyzed',aiData?'Yes — '+(aiData.summary||''):'No (manual)'],
+    ['Description',(document.getElementById('fn-desc').value||'').substring(0,120)+'…'],
+  ];
+  document.getElementById('fn-review-body').innerHTML = rows.map(([k,v])=>`
+    <div class="detail-row">
+      <div class="detail-key">${k}</div>
+      <div class="detail-value">${v}</div>
+    </div>`).join('');
+}
+
+/* ====== SUBMIT ====== */
+async function submitComplaint() {
+  const cat  = document.getElementById('fn-cat').value;
+  const dept = document.getElementById('fn-dept').value;
+  const phone= document.getElementById('fn-phone').value||'+91 XXXXX XXXXX';
+  
+  const complaintData = {
+    name: document.getElementById('fn-name').value,
+    phone,
+    email: document.getElementById('fn-email').value,
+    ward: document.getElementById('fn-ward').value,
+    address: document.getElementById('fn-addr').value,
+    description: document.getElementById('fn-desc').value,
+    category: cat,
+    priority: document.getElementById('fn-pri').value,
+    department: dept,
+    photos: uploadedPhotos, // REAL PHOTOS
+    location: {
+      latitude: window.currentLat || 11.0168,
+      longitude: window.currentLng || 76.9558
+    }
+  };
+
+  try {
+    const res = await fetch(`${API_URL}/complaints`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(complaintData)
+    });
+    
+    const responseData = await res.json();
+    
+    if (!res.ok) {
+      throw new Error(responseData.message || 'Submission failed');
+    }
+    
+    document.getElementById('fn-result-id').textContent = responseData.complaintId;
+    document.getElementById('fn-sms-preview').innerHTML =
+      `<div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:4px">SMS sent to ${phone}</div>
+       <div style="font-size:11.5px;line-height:1.7">"Your complaint <strong>${responseData.complaintId}</strong> for <em>${cat}</em> has been registered with Coimbatore Municipal Corporation. An officer from <em>${dept}</em> dept will be assigned within 24 hrs. Track at muni.coimbatore.gov.in"</div>`;
+    fileGoPage(4);
+  } catch (error) {
+    console.error('Error submitting complaint:', error);
+    alert('Failed to submit complaint: ' + error.message);
+  }
+}
+
+function resetFileForm() {
+  ['fn-name','fn-phone','fn-email','fn-desc','fn-addr','fn-landmark','fn-pin','fn-ward'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value='';
+  });
+  uploadedPhotos = [];
+  renderThumbs();
+  document.getElementById('gps-ok-msg').style.display='none';
+  aiData=null;
+  aiReset();
+  fileGoPage(1);
+}
+
+/* ====== TRACK PAGE ====== */
+const TRACK_DB = {
+  'MUN-1092': {
+    id:'MUN-1092', issue:'Pothole near Gandhipuram bus stop, vehicles swerving dangerously',
+    category:'Road / Pothole', ward:'Ward 1 - Gandhipuram',
+    priority:'High', status:'Critical', department:'Public Works',
+    filed:'16 Mar 2026, 10:24 AM', officer:null,
+    timeline:[
+      {label:'Complaint filed',sub:'Registered by citizen via MuniCare portal',done:true},
+      {label:'AI classification done',sub:'Category: Road/Pothole · Priority: High · Dept: Public Works',done:true},
+      {label:'Officer assignment pending',sub:'Awaiting assignment from Public Works supervisor',active:true},
+      {label:'Field inspection',sub:'Officer to visit and assess site',pend:true},
+      {label:'Work order issued',sub:'Road repair to be scheduled',pend:true},
+      {label:'Resolved',sub:'',pend:true},
+    ]
+  },
+  'MUN-1088': {
+    id:'MUN-1088', issue:'Water supply disrupted for 2 continuous days',
+    category:'Water Supply', ward:'Ward 3 - Peelamedu',
+    priority:'High', status:'Resolved', department:'Water Board',
+    filed:'14 Mar 2026, 08:10 AM', officer:'Rajan Kumar',
+    resolvedAt:'16 Mar 2026, 11:40 AM',
+    timeline:[
+      {label:'Complaint filed',sub:'Registered via portal',done:true},
+      {label:'AI classification done',sub:'Category: Water Supply · High · Water Board',done:true},
+      {label:'Officer assigned',sub:'Rajan Kumar, Water Board Dept',done:true},
+      {label:'Field inspection completed',sub:'Site visited — pipe blockage identified',done:true},
+      {label:'Work order issued',sub:'Repair crew dispatched immediately',done:true},
+      {label:'Resolved',sub:'Water supply restored. Resolved in 2.4 days.',done:true},
+    ]
+  },
+  'MUN-1090': {
+    id:'MUN-1090', issue:'Streetlight broken on RS Puram main road junction',
+    category:'Electrical / Streetlight', ward:'Ward 2 - RS Puram',
+    priority:'Medium', status:'In Progress', department:'Electrical',
+    filed:'15 Mar 2026, 04:50 PM', officer:'Suresh M.',
+    timeline:[
+      {label:'Complaint filed',sub:'Registered via portal',done:true},
+      {label:'AI classification done',sub:'Category: Electrical · Medium · Electrical Dept',done:true},
+      {label:'Officer assigned',sub:'Suresh M., Electrical Dept',done:true},
+      {label:'Field inspection in progress',sub:'Officer on site — replacement bulb ordered',active:true},
+      {label:'Repair scheduled',sub:'Parts delivery expected tomorrow',pend:true},
+      {label:'Resolved',sub:'',pend:true},
+    ]
+  }
+};
+
+function tryTrack(id) {
+  document.getElementById('track-input').value = id;
+  doTrack();
+}
+
+async function doTrack() {
+  const raw = (document.getElementById('track-input').value||'').trim().toUpperCase();
+  if (!raw) return;
+  document.getElementById('track-demo-zone').style.display = 'none';
+
+  // Check demo data first
+  let data = TRACK_DB[raw];
+  
+  if (!data) {
+    try {
+      const res = await fetch(`${API_URL}/complaints/${raw}`);
+      if (res.ok) {
+        const uc = await res.json();
+        data = {
+          id: uc.complaintId,
+          issue: uc.description || '—',
+          category: uc.category || 'Other',
+          ward: uc.ward || '—',
+          priority: uc.priority || 'Medium',
+          status: uc.status || 'Pending',
+          department: uc.department || 'Public Works',
+          filed: fmtDate(uc.createdAt),
+          officer: null,
+          timeline: [
+            { label: 'Complaint filed', sub: 'Registered via MuniCare portal', done: true },
+            { label: 'AI classification done', sub: 'AI-classified on filing', done: true },
+            { label: 'Officer assignment', sub: 'Pending assignment', active: true },
+            { label: 'In Progress', sub: '', pend: true },
+            { label: 'Resolved', sub: '', pend: true },
+          ]
+        };
+      } else if (res.status === 404) {
+        // Not found, will show "Complaint not found" card below
+        data = null;
+      } else {
+        throw new Error(`Tracking failed with status: ${res.status}`);
+      }
+    } catch (error) {
+      console.error('Error tracking complaint:', error);
+      alert('Error tracking complaint: ' + error.message);
+      return;
+    }
+
+    if (data) {
+      document.getElementById('track-map').innerHTML = ''; // Clear for new map
+      setTimeout(() => {
+        const coords = (data.location && data.location.latitude) ? [data.location.latitude, data.location.longitude] : DEFAULT_COORDS;
+        trackMap = L.map('track-map').setView(coords, 15);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(trackMap);
+        L.marker(coords).addTo(trackMap).bindPopup(data.id + ': ' + data.issue).openPopup();
+      }, 100);
+    }
+  }
+
+  const zone = document.getElementById('track-result-zone');
+  zone.style.display = 'block';
+
+  if (!data) {
+    zone.innerHTML = `
+      <div class="card" style="text-align:center;padding:32px">
+        <div style="font-size:32px;margin-bottom:10px;color:var(--text3)">?</div>
+        <div style="font-size:14px;font-weight:500;color:var(--text2);margin-bottom:6px">Complaint not found</div>
+        <div style="font-size:12px;color:var(--text3)">Check the ID format: MUN-XXXX</div>
+        <button class="btn btn-sm" style="margin-top:12px" onclick="document.getElementById('track-result-zone').style.display='none';document.getElementById('track-demo-zone').style.display='block';document.getElementById('track-input').value=''">Try Again</button>
+      </div>`;
+    return;
+  }
+
+  const tl = data.timeline.map(s => {
+    const cls = s.done ? 'stl-done' : s.active ? 'stl-active' : 'stl-pend';
+    const ico = s.done ? '✓' : s.active ? '●' : '○';
+    return `<div class="stl-step ${cls}"><div class="stl-dot">${ico}</div><div><div class="stl-title">${s.label}</div><div class="stl-sub">${s.sub}</div></div></div>`;
+  }).join('');
+
+  zone.innerHTML = `
+    <div class="card" style="margin-bottom:12px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap">
+        <div>
+          <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--text)">${data.id}</div>
+          <div style="font-size:13px;color:var(--text2);margin-top:4px;max-width:360px">${data.issue}</div>
+        </div>
+        <span class="badge ${statusClass(data.status)}" style="padding:5px 13px;font-size:11px">${data.status}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding-top:12px;border-top:0.5px solid var(--border)">
+        ${[['Category',data.category],['Priority','<span class="prio-dot '+priClass(data.priority)+'"></span>'+data.priority],['Ward',data.ward],['Department',data.department],['Filed',data.filed],['Officer',data.officer||'Awaiting assignment']].map(([k,v])=>`<div><div style="font-size:10.5px;color:var(--text3);margin-bottom:3px">${k}</div><div style="font-size:12.5px;font-weight:500;color:var(--text)">${v}</div></div>`).join('')}
+      </div>
+      <div id="track-map" class="map-box" style="height:150px;margin-top:12px"></div>
+    </div>
+    <div class="card" style="margin-bottom:12px">
+      <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:700;margin-bottom:16px">Progress Timeline</div>
+      <div class="stl">${tl}</div>
+    </div>
+    <div style="display:flex;gap:9px;flex-wrap:wrap">
+      <button class="btn btn-orange btn-sm" onclick="showPage('file')">+ File New Complaint</button>
+      <button class="btn btn-sm" onclick="document.getElementById('track-result-zone').style.display='none';document.getElementById('track-demo-zone').style.display='block';document.getElementById('track-input').value=''">Track Another</button>
+      <button class="btn btn-sm" onclick="showPage('complaints')">View All Complaints</button>
+    </div>`;
+}
+
+
+/* ====== ANALYTICS CHART ====== */
+function initAnalytics() {
+  const months = [
+    {f:82,r:74},{f:94,r:79},{f:76,r:70},{f:108,r:88},{f:121,r:97},{f:143,r:104}
+  ];
+  const max = 143;
+  document.getElementById('an-chart').innerHTML = months.map(m=>{
+    const fh = Math.round((m.f/max)*110);
+    const rh = Math.round((m.r/max)*110);
+    return `
+      <div class="cbar-group">
+        <div class="cbar-col">
+          <div class="cbar-val" style="color:var(--orange);font-size:8px">${m.f}</div>
+          <div class="cbar-rect" style="height:${fh}px;background:var(--orange);opacity:.75"></div>
+        </div>
+        <div class="cbar-col">
+          <div class="cbar-val" style="color:var(--green);font-size:8px">${m.r}</div>
+          <div class="cbar-rect" style="height:${rh}px;background:var(--green);opacity:.75"></div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+/* ====== COUNTER ANIMATION ====== */
+function animateNum(el, target) {
+  let c = 0;
+  const raw = parseInt(target.toString().replace(/,/g,''));
+  const step = Math.ceil(raw/40);
+  const t = setInterval(()=>{
+    c = Math.min(c+step, raw);
+    el.textContent = c.toLocaleString();
+    if(c>=raw) clearInterval(t);
+  }, 18);
+}
+
+/* ====== INIT ====== */
+async function checkApiStatus() {
+  const statusEl = document.getElementById('api-status');
+  try {
+    const res = await fetch(`${API_URL}/health`);
+    const data = await res.json();
+    if (res.ok && data.status === 'ok') {
+      const dbConnected = data.database === 'connected';
+      statusEl.style.background = dbConnected ? 'var(--gs)' : 'var(--ams)';
+      statusEl.style.color = dbConnected ? 'var(--green)' : 'var(--amber)';
+      statusEl.innerHTML = `<span style="width:6px;height:6px;border-radius:50%;background:currentColor"></span>${dbConnected ? 'Backend & DB Connected' : 'Backend OK, DB Error'}`;
+    } else {
+      throw new Error();
+    }
+  } catch (e) {
+    statusEl.style.background = 'var(--rs)';
+    statusEl.style.color = 'var(--red)';
+    statusEl.innerHTML = `<span style="width:6px;height:6px;border-radius:50%;background:currentColor"></span>Backend Offline`;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', ()=>{
+  checkApiStatus();
+  setInterval(checkApiStatus, 10000); // Check every 10s
+  initDashboard();
+  ['cnt-total','cnt-resolved','cnt-progress','cnt-sla'].forEach(id=>{
+    const el = document.getElementById(id);
+    if (el) animateNum(el, parseInt(el.textContent.replace(/,/g,'')));
+  });
+});
+</script>
+
+</body>
+</html>
